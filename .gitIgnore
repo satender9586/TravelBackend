@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# Output of 'npm pack'
+*.tgz
+
+# Express.js specific
+dist/
+build/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
