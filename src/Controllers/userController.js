@@ -7,18 +7,18 @@ const signup = async (req, res) => {
     let newUser = null;
 
     try {
-        const { id, username, email, password, role } = req.body;
+        const { username, fname, lname, email, department, organization, phone, password, role, is_staff } = req.body;
 
-        // Check if the user with the provided id already exists
-        const existingUserById = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        // // Check if the user with the provided id already exists
+        // const existingUserById = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
 
-        if (existingUserById.rows.length > 0) {
-            // If a user with the provided id already exists, return an error
-            return res.status(400).json({
-                success: false,
-                message: 'User with the provided id already exists',
-            });
-        }
+        // if (existingUserById.rows.length > 0) {
+        //     // If a user with the provided id already exists, return an error
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'User with the provided id already exists',
+        //     });
+        // }
 
         // Check if the username already exists
         const existingUserByUsername = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -31,12 +31,26 @@ const signup = async (req, res) => {
             });
         }
 
+        // Check if the email already exists
+        const existingUserByEmail = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (existingUserByEmail.rows.length > 0) {
+            // If a user with the provided email already exists, return an error
+            return res.status(400).json({
+                success: false,
+                message: 'User with the provided email already exists',
+            });
+        }
+
+
+
         const hashedPassword = await hashPassword(password);
 
         const result = await pool.query(
-            'INSERT INTO users (id, username, email, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, username, email, hashedPassword, role]
+            'INSERT INTO users (username, fname, lname, email, department, organization, phone, password, role, is_staff) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+            [username, fname, lname, email, department, organization, phone, hashedPassword, role, is_staff]
         );
+
 
         newUser = result.rows[0];
 
@@ -52,6 +66,7 @@ const signup = async (req, res) => {
 };
 
 
+// -------------------------------------------LOGIN FOR USERS---------------------------------------//
 const signIn = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -87,10 +102,7 @@ const signIn = async (req, res) => {
         }
 
         // If both email and password are valid, you can create and send a token for authentication
-        // ...
-
-        // token
-        const token = await JWT.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        const token = await JWT.sign({ id: user.rows[0].id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         res.status(200).json({
             success: true,
