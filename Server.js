@@ -6,6 +6,7 @@ const morgan = require("morgan");
 const helmet = require('helmet');
 const app = express();
 const userRoutes = require("./src/Routes/userRoutes")
+const travelRoutes = require("./src/Routes/travelRoutes")
 const pool = require("./Config/dbConnect")
 
 // database connection'
@@ -33,6 +34,7 @@ app.use(morgan('dev'))
 
 // ----------------------------ROUTES----------------------//
 app.use('/api/v1/auth', userRoutes);
+app.use("/api/v1/travel", travelRoutes)
 
 const PORT = process.env.PORT || 8080
 
