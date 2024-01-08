@@ -67,6 +67,7 @@ const signup = async (req, res) => {
 
 
 // -------------------------------------------LOGIN FOR USERS---------------------------------------//
+
 const signIn = async (req, res) => {
     try {
         const { email, password } = req.body;
