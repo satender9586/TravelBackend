@@ -19,6 +19,21 @@ const signup = async (req, res) => {
         //         message: 'User with the provided id already exists',
         //     });
         // }
+        const requiredFields = [
+            "username", "fname", "lname", "email",
+            "department", "organization", "phone", "password", "role",
+            "is_staff"
+        ];
+
+
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required fields: ${missingFields.join(', ')}`
+            });
+        }
 
         // Check if the username already exists
         const existingUserByUsername = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
@@ -27,7 +42,7 @@ const signup = async (req, res) => {
             // If a user with the provided username already exists, return an error
             return res.status(400).json({
                 success: false,
-                message: 'User with the provided username already exists',
+                message: 'username already exists',
             });
         }
 
@@ -38,7 +53,7 @@ const signup = async (req, res) => {
             // If a user with the provided email already exists, return an error
             return res.status(400).json({
                 success: false,
-                message: 'User with the provided email already exists',
+                message: 'email already exists',
             });
         }
 
@@ -123,6 +138,40 @@ const signIn = async (req, res) => {
     }
 };
 
+// -------------------------------------USER TOKEN VERIFICATION------------------------------
 
 
-module.exports = { signup, signIn };
+const tokenVerify = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        JWT.verify(token, process.env.JWT_SECRET, async (error, decoded) => {
+            if (error) {
+                return res.json({ valid: false, message: "Invalid Auth" });
+            }
+
+
+            const userQuery = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+
+            if (userQuery.rows.length === 0) {
+                // If user not found, return an error
+                return res.json({ valid: false });
+            }
+
+            const user = userQuery.rows[0];
+
+            return res.json({
+                valid: true,
+                user: {
+                    username: user.username,
+                    role: user.role,
+                },
+            });
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ valid: false, error: "Internal Server Error" });
+    }
+};
+
+module.exports = { signup, signIn, tokenVerify };
