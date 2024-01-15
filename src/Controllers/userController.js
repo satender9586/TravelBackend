@@ -2,29 +2,51 @@ const pool = require('../../Config/dbConnect');
 const { hashPassword, comparePassword } = require("../../helper/authHelper");
 const JWT = require("jsonwebtoken")
 const dotenv = require('dotenv');
+const nodemailer = require("nodemailer");
+
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: "sksatenderkumar59@gmail.com",
+        pass: "fkmi ifgb yekk cihi"
+    }
+});
+
+const sendMail = async (to, subject, text) => {
+    const info = {
+        from: "Trimaster Private limited <sksatenderkumar59@gmail.com>",
+        to: to,
+        subject: subject,
+        text: text
+    };
+
+    try {
+        await transporter.sendMail(info);
+        console.log("Email sent successfully");
+    } catch (error) {
+        console.error("Error in sending mail:", error);
+    }
+};
+
+const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000);
+};
 
 const signup = async (req, res) => {
     let newUser = null;
 
     try {
         const { username, fname, lname, email, department, organization, phone, password, role, is_staff } = req.body;
+        const uniqueNumber = Math.floor(Math.random() * 100000000);
 
-        // // Check if the user with the provided id already exists
-        // const existingUserById = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        const otp = generateOTP();
 
-        // if (existingUserById.rows.length > 0) {
-        //     // If a user with the provided id already exists, return an error
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: 'User with the provided id already exists',
-        //     });
-        // }
         const requiredFields = [
             "username", "fname", "lname", "email",
             "department", "organization", "phone", "password", "role",
             "is_staff"
         ];
-
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -57,23 +79,66 @@ const signup = async (req, res) => {
             });
         }
 
-
-
         const hashedPassword = await hashPassword(password);
 
+        // Store the OTP and user details in the database
         const result = await pool.query(
-            'INSERT INTO users (username, fname, lname, email, department, organization, phone, password, role, is_staff) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-            [username, fname, lname, email, department, organization, phone, hashedPassword, role, is_staff]
+            'INSERT INTO users (employeeid, username, fname, lname, email, department, organization, phone, password, role, is_staff, otp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+            [uniqueNumber, username, fname, lname, email, department, organization, phone, hashedPassword, role, is_staff, otp]
         );
-
 
         newUser = result.rows[0];
 
+        // Sending OTP to the user's email
+        const emailSubject = 'OTP for Registration';
+        const emailText = `Dear ${fname},\n\nYour OTP for registration is: ${otp}.`;
+
+        await sendMail(newUser.email, emailSubject, emailText);
+
         res.status(201).json({
             success: true,
-            message: 'User registered successfully',
+            message: 'OTP sent successfully. Check your email to verify registration.',
             user: newUser,
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// ------------------------------------------OTP-Verify----------------------------------------------//
+
+
+const otpVerify = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        // Fetch user by email
+        const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        const storedOTP = user.rows[0].otp;
+
+        if (otp === storedOTP) {
+
+            await pool.query('UPDATE users SET is_verified = true WHERE email = $1', [email]);
+
+            return res.status(200).json({
+                success: true,
+                message: 'OTP verified successfully',
+            });
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Incorrect OTP',
+            });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -124,7 +189,7 @@ const signIn = async (req, res) => {
             success: true,
             message: "User logged in successfully",
             user: {
-                id: user.rows[0].id,
+                employeeid: user.rows[0].employeeid,
                 username: user.rows[0].username,
                 email: user.rows[0].email,
                 role: user.rows[0].role,
@@ -174,4 +239,4 @@ const tokenVerify = async (req, res) => {
     }
 };
 
-module.exports = { signup, signIn, tokenVerify };
+module.exports = { signup, signIn, tokenVerify, otpVerify };
