@@ -1,5 +1,5 @@
 const pool = require('../../Config/dbConnect');
-const { hashPassword, comparePassword } = require("../../helper/authHelper");
+const { hashPassword, comparePassword, generateSerialNumber, generateOTP } = require("../../helper/authHelper");
 const JWT = require("jsonwebtoken")
 const dotenv = require('dotenv');
 const nodemailer = require("nodemailer");
@@ -29,23 +29,19 @@ const sendMail = async (to, subject, text) => {
     }
 };
 
-const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000);
-};
+
 
 const signup = async (req, res) => {
     let newUser = null;
 
     try {
-        const { username, fname, lname, email, department, organization, phone, password, role, is_staff } = req.body;
-        const uniqueNumber = Math.floor(Math.random() * 100000000);
-
-        const otp = generateOTP();
+        const { username, fname, lname, email, department, organization, phone, password, } = req.body;
+        const uniqueNumber = generateSerialNumber();
+        const { otp, currentTime } = generateOTP();
 
         const requiredFields = [
             "username", "fname", "lname", "email",
-            "department", "organization", "phone", "password", "role",
-            "is_staff"
+            "department", "organization", "phone", "password",
         ];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -56,12 +52,9 @@ const signup = async (req, res) => {
                 message: `Missing required fields: ${missingFields.join(', ')}`
             });
         }
-
-        // Check if the username already exists
         const existingUserByUsername = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
 
         if (existingUserByUsername.rows.length > 0) {
-            // If a user with the provided username already exists, return an error
             return res.status(400).json({
                 success: false,
                 message: 'username already exists',
@@ -83,8 +76,8 @@ const signup = async (req, res) => {
 
         // Store the OTP and user details in the database
         const result = await pool.query(
-            'INSERT INTO users (employeeid, username, fname, lname, email, department, organization, phone, password, role, is_staff, otp) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-            [uniqueNumber, username, fname, lname, email, department, organization, phone, hashedPassword, role, is_staff, otp]
+            'INSERT INTO users (employeid, username, fname, lname, email, department, organization, phone, password, otp, otp_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [uniqueNumber, username, fname, lname, email, department, organization, phone, hashedPassword, otp, currentTime]
         );
 
         newUser = result.rows[0];
@@ -107,8 +100,6 @@ const signup = async (req, res) => {
 };
 
 // ------------------------------------------OTP-Verify----------------------------------------------//
-
-
 const otpVerify = async (req, res) => {
     try {
         const { email, otp } = req.body;
@@ -124,9 +115,14 @@ const otpVerify = async (req, res) => {
         }
 
         const storedOTP = user.rows[0].otp;
+        const otpTime = user.rows[0].otp_time;
+        const currentTime = new Date().toISOString();
 
+        console.log('Current Time:', currentTime);
+        console.log('OTP Time:', otpTime);
+
+        // Compare OTP only
         if (otp === storedOTP) {
-
             await pool.query('UPDATE users SET is_verified = true WHERE email = $1', [email]);
 
             return res.status(200).json({
@@ -134,6 +130,8 @@ const otpVerify = async (req, res) => {
                 message: 'OTP verified successfully',
             });
         } else {
+            console.log('Verification failed: Incorrect OTP', otp, storedOTP);
+
             return res.status(400).json({
                 success: false,
                 message: 'Incorrect OTP',
@@ -144,6 +142,9 @@ const otpVerify = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+
+
 
 
 // -------------------------------------------LOGIN FOR USERS---------------------------------------//
@@ -189,10 +190,7 @@ const signIn = async (req, res) => {
             success: true,
             message: "User logged in successfully",
             user: {
-                employeeid: user.rows[0].employeeid,
-                username: user.rows[0].username,
-                email: user.rows[0].email,
-                role: user.rows[0].role,
+                data: user.rows[0]
             },
             token
         });

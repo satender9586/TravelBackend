@@ -15,4 +15,22 @@ const comparePassword = async (password, hashedPassword) => {
     return bcrypt.compare(password, hashedPassword)
 }
 
-module.exports = { hashPassword, comparePassword }
+let serialNumberCounter = 1000001;
+const generateSerialNumber = () => {
+    const serialNumber = serialNumberCounter;
+    serialNumberCounter++;
+    return serialNumber;
+}
+
+
+const generateOTP = () => {
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    const currentTime = new Date().toISOString();
+
+    return {
+        otp,
+        currentTime
+    };
+};
+
+module.exports = { hashPassword, comparePassword, generateSerialNumber, generateOTP }
