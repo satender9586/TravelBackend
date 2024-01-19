@@ -1,7 +1,6 @@
 const pool = require('../../Config/dbConnect');
 const { hashPassword, comparePassword, generateSerialNumber, generateOTP } = require("../../helper/authHelper");
 const JWT = require("jsonwebtoken")
-const dotenv = require('dotenv');
 const nodemailer = require("nodemailer");
 
 
@@ -31,18 +30,14 @@ const sendMail = async (to, subject, text) => {
 
 
 
+
+
 const signup = async (req, res) => {
-    let newUser = null;
-
     try {
-        const { username, fname, lname, email, department, organization, phone, password, } = req.body;
-        const uniqueNumber = generateSerialNumber();
-        const { otp, currentTime } = generateOTP();
+        const { username, fname, lname, email, department, organization, phone, password } = req.body;
 
-        const requiredFields = [
-            "username", "fname", "lname", "email",
-            "department", "organization", "phone", "password",
-        ];
+        // Check if all required fields are present
+        const requiredFields = ['username', 'fname', 'lname', 'email', 'department', 'organization', 'phone', 'password'];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -52,45 +47,51 @@ const signup = async (req, res) => {
                 message: `Missing required fields: ${missingFields.join(', ')}`
             });
         }
+
+        // Check if the username already exists
         const existingUserByUsername = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-
         if (existingUserByUsername.rows.length > 0) {
+            const existingUser = existingUserByUsername.rows[0];
+            if (!existingUser.is_verified) {
+                const { otp, currentTime } = generateOTP();
+                await pool.query('UPDATE users SET otp = $1, otp_time = $2 WHERE email = $3', [otp, currentTime, existingUser.email]);
+
+                const emailSubject = 'New OTP for Registration';
+                const emailText = `Dear ${fname},\n\nYour new OTP for registration is: ${otp}.`;
+
+                await sendMail(existingUser.email, emailSubject, emailText);
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'New OTP generated and sent successfully. Check your email to verify registration.',
+                });
+            }
+
             return res.status(400).json({
                 success: false,
-                message: 'username already exists',
+                message: 'Username already exists',
             });
         }
 
-        // Check if the email already exists
-        const existingUserByEmail = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-
-        if (existingUserByEmail.rows.length > 0) {
-            // If a user with the provided email already exists, return an error
-            return res.status(400).json({
-                success: false,
-                message: 'email already exists',
-            });
-        }
-
+        // Continue with the registration logic if the username is not taken
+        const uniqueNumber = generateSerialNumber();
         const hashedPassword = await hashPassword(password);
+        const { otp, currentTime } = generateOTP();
 
-        // Store the OTP and user details in the database
         const result = await pool.query(
             'INSERT INTO users (employeid, username, fname, lname, email, department, organization, phone, password, otp, otp_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
             [uniqueNumber, username, fname, lname, email, department, organization, phone, hashedPassword, otp, currentTime]
         );
 
-        newUser = result.rows[0];
-
-        // Sending OTP to the user's email
+        const newUser = result.rows[0];
         const emailSubject = 'OTP for Registration';
-        const emailText = `Dear ${fname},\n\nYour OTP for registration is: ${otp}.`;
+        const emailText = `Dear ${fname},\n\nYour initial OTP for registration is: ${otp}.`;
 
         await sendMail(newUser.email, emailSubject, emailText);
 
         res.status(201).json({
             success: true,
-            message: 'OTP sent successfully. Check your email to verify registration.',
+            message: 'Initial OTP sent successfully. Check your email to verify registration.',
             user: newUser,
         });
     } catch (error) {
@@ -98,6 +99,13 @@ const signup = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+
+
+
+
+
+// 2024-01-19T09:12:07.422Z
 
 // ------------------------------------------OTP-Verify----------------------------------------------//
 const otpVerify = async (req, res) => {
@@ -114,13 +122,8 @@ const otpVerify = async (req, res) => {
             });
         }
 
+
         const storedOTP = user.rows[0].otp;
-        const otpTime = user.rows[0].otp_time;
-        const currentTime = new Date().toISOString();
-
-        console.log('Current Time:', currentTime);
-        console.log('OTP Time:', otpTime);
-
         // Compare OTP only
         if (otp === storedOTP) {
             await pool.query('UPDATE users SET is_verified = true WHERE email = $1', [email]);
@@ -142,6 +145,10 @@ const otpVerify = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
+
+
+
 
 
 
@@ -183,21 +190,31 @@ const signIn = async (req, res) => {
             });
         }
 
-        // If both email and password are valid, you can create and send a token for authentication
+        // Check if the user is not verified
+        const checkVerify = user.rows[0].is_verified;
+        if (!checkVerify) {
+            return res.status(400).json({
+                success: false,
+                message: "User is created but not verified",
+                data: user.rows[0],
+            });
+        }
+
+        // If both email and password are valid, create and send a token for authentication
         const token = await JWT.sign({ id: user.rows[0].id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "User logged in successfully",
             user: {
-                data: user.rows[0]
+                data: user.rows[0],
             },
-            token
+            token,
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, error: "Internal Server Error" });
+        return res.status(500).json({ success: false, error: "Internal Server Error" });
     }
 };
 
