@@ -16,12 +16,12 @@ const comparePassword = async (password, hashedPassword) => {
 }
 
 let serialNumberCounter = 1000001;
+
 const generateSerialNumber = () => {
     const serialNumber = serialNumberCounter;
     serialNumberCounter++;
     return serialNumber;
 }
-
 
 const generateOTP = () => {
     const otp = Math.floor(100000 + Math.random() * 900000);

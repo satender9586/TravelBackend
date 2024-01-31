@@ -1,5 +1,5 @@
 const pool = require('../../Config/dbConnect');
-const { hashPassword, comparePassword, generateSerialNumber, generateOTP } = require("../../helper/authHelper");
+const { hashPassword, comparePassword, generateOTP } = require("../../helper/authHelper");
 const JWT = require("jsonwebtoken")
 const nodemailer = require("nodemailer");
 
@@ -34,10 +34,10 @@ const sendMail = async (to, subject, text) => {
 
 const signup = async (req, res) => {
     try {
-        const { username, fname, lname, email, department, organization, phone, password } = req.body;
+        const { employeeid, username, fname, lname, email, department, organization, phone, password } = req.body;
 
         // Check if all required fields are present
-        const requiredFields = ['username', 'fname', 'lname', 'email', 'department', 'organization', 'phone', 'password'];
+        const requiredFields = ['employeeid', 'username', 'fname', 'lname', 'email', 'department', 'organization', 'phone', 'password'];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -74,13 +74,13 @@ const signup = async (req, res) => {
         }
 
         // Continue with the registration logic if the username is not taken
-        const uniqueNumber = generateSerialNumber();
+
         const hashedPassword = await hashPassword(password);
         const { otp, currentTime } = generateOTP();
 
         const result = await pool.query(
-            'INSERT INTO users (employeid, username, fname, lname, email, department, organization, phone, password, otp, otp_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
-            [uniqueNumber, username, fname, lname, email, department, organization, phone, hashedPassword, otp, currentTime]
+            'INSERT INTO users (employeeid, username, fname, lname, email, department, organization, phone, password, otp, otp_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [employeeid, username, fname, lname, email, department, organization, phone, hashedPassword, otp, currentTime]
         );
 
         const newUser = result.rows[0];

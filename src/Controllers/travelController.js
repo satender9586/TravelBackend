@@ -9,14 +9,14 @@ const newTravelPlanning = async (req, res) => {
 
             requesttype, traveltype, travelarea, bookedby,
             startdate, enddate, totaldays, travelpurpose, travelreason,
-            baselocation, destlocation, advanceammount, description, user_id
+            baselocation, destlocation, advanceamount, description, employeeid
         } = req.body;
 
         // Check if any required field is missing
         const requiredFields = [
             "requesttype", "traveltype", "travelarea", "bookedby",
             "startdate", "enddate", "totaldays", "travelpurpose", "travelreason",
-            "baselocation", "destlocation", "advanceammount", "description", "user_id"
+            "baselocation", "destlocation", "advanceamount", "description", "employeeid"
         ];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -34,12 +34,12 @@ const newTravelPlanning = async (req, res) => {
         INSERT INTO travel_plan (
             travel_id, requesttype, traveltype, travelarea, bookedby,
             startdate, enddate, totaldays, travelpurpose, travelreason,
-            baselocation, destlocation, advanceammount, description, user_id
+            baselocation, destlocation, advanceamount, description, employeeid
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
             [
                 t_id, requesttype, traveltype, travelarea, bookedby,
                 startdate, enddate, totaldays, travelpurpose, travelreason,
-                baselocation, destlocation, advanceammount, description, user_id
+                baselocation, destlocation, advanceamount, description, employeeid
             ]
         );
 
@@ -104,10 +104,10 @@ const getTravelRequestDetails = async (req, res) => {
 
 const getEmployeeDetailsAndTravelRequests = async (req, res) => {
     try {
-        const { user_id } = req.body;
+        const { employeeid } = req.body;
 
-        // Check if the user_id is provided
-        if (!user_id) {
+        // Check if the employeeid is provided
+        if (!employeeid) {
             return res.status(400).json({
                 success: false,
                 message: "User id is missing"
@@ -115,7 +115,7 @@ const getEmployeeDetailsAndTravelRequests = async (req, res) => {
         }
 
         // Retrieve employee details from the user table
-        const userResult = await pool.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
+        const userResult = await pool.query('SELECT * FROM users WHERE employeeid = $1', [employeeid]);
 
         // Check if the user exists
         if (userResult.rows.length === 0) {
@@ -130,8 +130,8 @@ const getEmployeeDetailsAndTravelRequests = async (req, res) => {
         // Log user details for troubleshooting
         console.log('Employee Details:', employeeDetails);
 
-        // Retrieve all travel requests for the specified user_id from the travel_plan table
-        const travelResult = await pool.query('SELECT * FROM travel_plan WHERE user_id = $1', [user_id]);
+        // Retrieve all travel requests for the specified employeeid from the travel_plan table
+        const travelResult = await pool.query('SELECT * FROM travel_plan WHERE employeeid = $1', [employeeid]);
 
         const travelRequests = travelResult.rows;
 
@@ -197,14 +197,14 @@ const updateTravelplan = async (req, res) => {
             travel_id,
             requesttype, traveltype, travelarea, bookedby,
             startdate, enddate, totaldays, travelpurpose, travelreason,
-            baselocation, destlocation, advanceammount, description
+            baselocation, destlocation, advanceamount, description
         } = req.body;
 
         // Check if any required field is missing
         const requiredFields = [
             "requesttype", "traveltype", "travelarea", "bookedby",
             "startdate", "enddate", "totaldays", "travelpurpose", "travelreason",
-            "baselocation", "destlocation", "advanceammount", "description",
+            "baselocation", "destlocation", "advanceamount", "description",
         ];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -247,12 +247,12 @@ const updateTravelplan = async (req, res) => {
          SET requesttype = $1, traveltype = $2, travelarea = $3, bookedby = $4,
              startdate = $5, enddate = $6, totaldays = $7, travelpurpose = $8,
              travelreason = $9, baselocation = $10, destlocation = $11,
-             advanceammount = $12, description = $13
+             advanceamount = $12, description = $13
          WHERE travel_id = $14
          RETURNING *`,
             [
                 requesttype, traveltype, travelarea, bookedby, startdate, enddate, totaldays,
-                travelpurpose, travelreason, baselocation, destlocation, advanceammount, description, travel_id
+                travelpurpose, travelreason, baselocation, destlocation, advanceamount, description, travel_id
             ]
         );
 
