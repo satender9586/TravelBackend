@@ -13,10 +13,48 @@ const isEmailExists = async (email) => {
 // new employee registration
 const newEmployeeRegister = async (req, res) => {
     try {
-        const { grade, designation, location, email, fname, lname } = req.body;
+        const { employeeid,
+            grade,
+            designation,
+            date_of_joining,
+            department,
+            division,
+            company_code,
+            unit,
+            sub_unit,
+            emp_grade,
+            emp_designation,
+            email,
+            fname,
+            lname,
+            gender,
+            emp_category,
+            location,
+            repo_manager_name,
+            repo_manager_code,
+            hod_name, } = req.body;
 
         // Check required fields
-        const requiredFields = ['grade', 'designation', 'location', 'email', 'fname', 'lname'];
+        const requiredFields = ['employeeid',
+            "grade",
+            'designation',
+            'date_of_joining',
+            'department',
+            'division',
+            'company_code',
+            'unit',
+            'sub_unit',
+            'emp_grade',
+            'emp_designation',
+            'email',
+            'fname',
+            'lname',
+            'gender',
+            'emp_category',
+            'location',
+            'repo_manager_name',
+            'repo_manager_code',
+            'hod_name',];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
 
@@ -39,11 +77,35 @@ const newEmployeeRegister = async (req, res) => {
         const generateNumber = generateSerialNumber();
 
         // Insert the user
-        const result = await pool.query(
-            'INSERT INTO employee_master(employeeid, grade, designation, location, email, fname, lname) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-            [generateNumber, grade, designation, location, email, fname, lname]
+        const employeeResult = await pool.query(
+            'INSERT INTO employee_master(' +
+            'employeeid, grade, designation, date_of_joining, department, division, ' +
+            'company_code, unit, sub_unit, emp_grade, emp_designation, email, ' +
+            'fname, lname, gender, emp_category, location, repo_manager_name, ' +
+            'repo_manager_code, hod_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *',
+            [
+                employeeid,
+                grade,
+                designation,
+                date_of_joining,
+                department,
+                division,
+                company_code,
+                unit,
+                sub_unit,
+                emp_grade,
+                emp_designation,
+                email,
+                fname,
+                lname,
+                gender,
+                emp_category,
+                location,
+                repo_manager_name,
+                repo_manager_code,
+                hod_name,
+            ]
         );
-
         const newUser = result.rows[0];
 
         res.status(201).json({

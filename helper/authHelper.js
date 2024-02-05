@@ -18,9 +18,8 @@ const comparePassword = async (password, hashedPassword) => {
 let serialNumberCounter = 1000001;
 
 const generateSerialNumber = () => {
-    const serialNumber = serialNumberCounter;
-    serialNumberCounter++;
-    return serialNumber;
+    const randomNumber = Math.floor(10000000 + Math.random() * 90000000)
+    return randomNumber;
 }
 
 const generateOTP = () => {
