@@ -48,6 +48,15 @@ const signup = async (req, res) => {
             });
         }
 
+        // Check if the employee id is not exists in employee master table
+        const existingUserByEmployeeId = await pool.query('SELECT * FROM employee_master WHERE employeeid = $1', [employeeid]);
+        if (existingUserByEmployeeId.rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Employee id does not exist in employee master table"
+            });
+        }
+
         // Check if the username already exists
         const existingUserByUsername = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
         if (existingUserByUsername.rows.length > 0) {
