@@ -272,7 +272,99 @@ const updateTravelplan = async (req, res) => {
 };
 
 
+const getAllTravelList = async (req, res) => {
+    try {
+        const travelPlans = await pool.query('SELECT * FROM travel_plan')
+        if (travelPlans.rows.length > 0) {
+            res.status(200).json({
+                success: true,
+                message: "All Travel Plan List",
+                travelPlans: travelPlans.rows
+            })
+        } else {
+            res.status(404).json({
+                success: false,
+                message: "No travel Plans found"
+            })
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal Server Error'
+        });
+    }
+}
 
 
+const updatetravelplanstatus = async (req, res) => {
+    try {
+        const { travelid } = req.body;
 
-module.exports = { newTravelPlanning, getTravelRequestDetails, getEmployeeDetailsAndTravelRequests, deleterTravelplan, updateTravelplan };
+        const isTravelplanExit = await pool.query(`SELECT * FROM travel_plan WHERE travel_id = $1`, [travelid]);
+
+        if (isTravelplanExit.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Travel plan does not exist",
+                travelid: travelid
+            });
+        }
+
+        // Update the status of the travel plan
+        const updateStatus = await pool.query(`UPDATE travel_plan SET status = $1 WHERE travel_id = $2`, ['approve', travelid]);
+
+        res.status(200).json({
+            success: true,
+            message: "Travel plan approved successfully",
+            travelid: travelid
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+}
+const updatetravelplanstatus2 = async (req, res) => {
+    try {
+        const { travelid } = req.body;
+
+        const isTravelplanExit = await pool.query(`SELECT * FROM travel_plan WHERE travel_id = $1`, [travelid]);
+
+        if (isTravelplanExit.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Travel plan does not exist",
+                travelid: travelid
+            });
+        }
+        if (isTravelplanExit.rows[0].status === 'approve') {
+            return res.status(200).json({
+                success: false,
+                message: "Item is  approved you can not reject",
+                id: travelid
+            });
+        }
+
+        // Update the status of the travel plan
+        const updateStatus = await pool.query(`UPDATE travel_plan SET status = $1 WHERE travel_id = $2`, ['reject', travelid]);
+
+        res.status(200).json({
+            success: true,
+            message: "Travel plan Reject successfully",
+            travelid: travelid
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+}
+
+module.exports = { newTravelPlanning, updatetravelplanstatus2, getTravelRequestDetails, updatetravelplanstatus, getEmployeeDetailsAndTravelRequests, deleterTravelplan, updateTravelplan, getAllTravelList };
