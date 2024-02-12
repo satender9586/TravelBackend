@@ -296,7 +296,6 @@ const getAllTravelList = async (req, res) => {
     }
 }
 
-
 const updatetravelplanstatus = async (req, res) => {
     try {
         const { travelid } = req.body;

@@ -27,13 +27,15 @@ const cliamsItemfun = async (req, res) => {
                 message: `The provided travel_id (${travel_id}) does not exist in the travel_plan table`
             });
         }
-        // const travelStatus = isTravelIdValid.rows[0].status;
-        // if (travelStatus !== 'approved') {
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: `The travel plan with travel_id ${travel_id} is not approved`
-        //     });
-        // }
+        const travelStatus = isTravelIdValid.rows[0].status;
+
+        if (travelStatus !== 'approve') {
+            return res.status(400).json({
+                success: false,
+                message: `The travel plan with travel_id ${travel_id} is not approved`,
+                travelStatus: travelStatus.rows[0]
+            });
+        }
 
 
 
@@ -60,5 +62,110 @@ const cliamsItemfun = async (req, res) => {
     }
 }
 
+const getClaimsdetails = async (req, res) => {
+    try {
+        const { id } = req.params;
 
-module.exports = { cliamsItemfun };
+
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a travel_id for claim details",
+
+            });
+        }
+        const isTravelidExists = await pool.query('SELECT * FROM claims WHERE travel_id = $1', [id])
+
+        if (isTravelidExists.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No claim details found for the provided travel_id",
+                id
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Retrive you claims base on travel id successfully",
+            clims: isTravelidExists.rows
+        })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+}
+const approvedClaims = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide claim id for updating claims"
+            });
+        }
+
+
+        const isClaimIdExist = await pool.query('SELECT * FROM claims WHERE claim_id = $1', [id]);
+
+        if (isClaimIdExist.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No claim details found for the provided id",
+                id: id
+            });
+        }
+
+        // Update claim status to "approved"
+        await pool.query('UPDATE claims SET status = $1 WHERE claim_id = $2', ['approved', id]);
+
+        return res.status(200).json({
+            success: true,
+            message: "Claim approved successfully",
+            id: id
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+const delterClaim = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const isClaimidExist = await pool.query('SELECT * FROM claims WHERE claim_id = $1', [id]);
+
+        if (isClaimidExist.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No claim details found for the provided claims_id",
+                id: id
+            });
+        }
+        if (isClaimidExist.rows[0].status === "approved") {
+            return res.status(403).json({
+                success: false,
+                message: "Cannot delete an approved claim"
+            });
+        }
+        // Delete claim base on id
+        await pool.query(`DELETE FROM claims WHERE claim_id = $1`, [id]);
+
+        return res.status(200).json({
+            success: true,
+            message: "Claim Deleted Successfully",
+            id: id
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+
+
+module.exports = { cliamsItemfun, getClaimsdetails, approvedClaims, delterClaim };
