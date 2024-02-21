@@ -9,7 +9,7 @@ router.post('/travalClaims', cliamsItemfun)
 router.get("/getuserclaims/:id", getClaimsdetails)
 
 // PUT METHOD || RETRIVE CLAIMS DETAILS
-router.put("/approvedClaims/:id", approvedClaims)
+router.put("/approvedClaims/:claimid", approvedClaims)
 
 // PUT METHOD || RETRIVE CLAIMS DETAILS
 router.delete("/deleteClaims/:id", delterClaim)
