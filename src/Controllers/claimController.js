@@ -11,13 +11,13 @@ const cliamsItemfun = async (req, res) => {
             to_location,
             travelclass,
             traveltype,
-            depature,
-            arrivel,
+            departure,
+            arrival,
             from_time,
             to_time,
             travel_mode,
             ticket_no,
-            attachement,
+            attachment,
             checkin,
             checkout,
             no_night,
@@ -26,6 +26,7 @@ const cliamsItemfun = async (req, res) => {
             other_date,
             place,
             remark,
+            date,
         } = req.body;
 
         // Validate and parse amount
@@ -36,13 +37,13 @@ const cliamsItemfun = async (req, res) => {
 
         // Perform the database insertion
         await pool.query(
-            `INSERT INTO reimbursement (
-            travelid, claimid, amount, is_approved, from_location, to_location,
-            travelclass, traveltype, depature, arrivel, from_time, to_time,
-            travel_mode, ticket_no, attachement, checkin, checkout, no_night,
-            local_date, food_date, other_date, place, remark
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-            $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+            `INSERT INTO reimbursement1 (
+                travelid, claimid, amount, is_approved, from_location, to_location,
+                travelclass, traveltype, departure, arrival, from_time, to_time,
+                travel_mode, ticket_no, attachment, checkin, checkout, no_night,
+                local_date, food_date, other_date, place, remark,date
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                $15, $16, $17, $18, $19, $20, $21, $22, $23,$24)`,
             [
                 travelid,
                 claimid,
@@ -52,13 +53,13 @@ const cliamsItemfun = async (req, res) => {
                 to_location,
                 travelclass,
                 traveltype,
-                depature,
-                arrivel,
+                departure,
+                arrival,
                 from_time,
                 to_time,
                 travel_mode,
                 ticket_no,
-                attachement,
+                attachment,
                 checkin,
                 checkout,
                 no_night,
@@ -67,6 +68,7 @@ const cliamsItemfun = async (req, res) => {
                 other_date,
                 place,
                 remark,
+                date,
             ]
         );
 
@@ -80,7 +82,6 @@ const cliamsItemfun = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
-
 
 const getClaimsdetails = async (req, res) => {
     try {
@@ -98,7 +99,7 @@ const getClaimsdetails = async (req, res) => {
         const [travelID, claimID] = id.split('-');
 
         // Retrieve claim details based on travelID and claimID
-        const claimDetails = await pool.query('SELECT * FROM reimbursement WHERE travelid = $1 AND id = $2', [travelID, claimID]);
+        const claimDetails = await pool.query('SELECT * FROM reimbursement1 WHERE travelid = $1 AND id = $2', [travelID, claimID]);
 
         // Check if any claim details found
         if (claimDetails.rows.length === 0) {
@@ -122,7 +123,32 @@ const getClaimsdetails = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }
+const getAllClaims = async (req, res) => {
+    try {
+        const { id } = req.params;
 
+        // Check if travelID is provided
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid travel ID to retrieve claims",
+            });
+        }
+
+        // Retrieve all claims based on travelID
+        const claims = await pool.query('SELECT * FROM reimbursement1 WHERE travelid = $1', [id]);
+
+        return res.status(200).json({
+            success: true,
+            claims: claims.rows,
+            message: "Claims retrieved successfully for the provided travel ID",
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
 const delterClaim = async (req, res) => {
     try {
         const { id } = req.params;
@@ -139,7 +165,7 @@ const delterClaim = async (req, res) => {
         const [travelID, claimID] = id.split('-');
 
         // Retrieve claim details to check if it is approved
-        const claimDetails = await pool.query('SELECT is_approved FROM reimbursement WHERE travelid = $1 AND id = $2', [travelID, claimID]);
+        const claimDetails = await pool.query('SELECT is_approved FROM reimbursement1 WHERE travelid = $1 AND id = $2', [travelID, claimID]);
 
         // Check if any claim details found
         if (claimDetails.rows.length === 0) {
@@ -159,7 +185,7 @@ const delterClaim = async (req, res) => {
         }
 
         // Delete the claim based on travelID and id
-        await pool.query(`DELETE FROM reimbursement WHERE travelid = $1 AND id = $2`, [travelID, claimID]);
+        await pool.query(`DELETE FROM reimbursement1 WHERE travelid = $1 AND id = $2`, [travelID, claimID]);
 
         return res.status(200).json({
             success: true,
@@ -170,6 +196,116 @@ const delterClaim = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+const updateClaims = async (req, res) => {
+    try {
+        const {
+            claimid,
+            travelid,
+            amount,
+            from_location,
+            to_location,
+            travelclass,
+            traveltype,
+            departure,
+            arrival,
+            from_time,
+            to_time,
+            travel_mode,
+            ticket_no,
+            attachment,
+            checkin,
+            checkout,
+            no_night,
+            local_date,
+            food_date,
+            other_date,
+            place,
+            remark,
+            date,
+        } = req.body;
+
+        // Check if claimid and travelid are provided
+        if (!claimid || !travelid) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide both claimid and travelid for updating the claim",
+            });
+        }
+
+        // Check if the claim exists in the database
+        const claimExists = await pool.query('SELECT * FROM reimbursement1 WHERE id = $1 AND travelid = $2', [claimid, travelid]);
+        if (claimExists.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No claim found for the provided claimid and travelid",
+            });
+        }
+
+        // Perform the database update
+        const updateQuery = `
+            UPDATE reimbursement1 
+            SET 
+                amount = $1,
+                from_location = $2,
+                to_location = $3,
+                travelclass = $4,
+                traveltype = $5,
+                departure = $6, 
+                arrival = $7, 
+                from_time = $8,
+                to_time = $9,
+                travel_mode = $10,
+                ticket_no = $11,
+                attachment = $12,
+                checkin = $13,
+                checkout = $14,
+                no_night = $15,
+                local_date = $16,
+                food_date = $17,
+                other_date = $18,
+                place = $19,
+                remark = $20,
+                date = $21
+            WHERE id = $22 AND travelid = $23`;
+
+        const updateValues = [
+            amount,
+            from_location,
+            to_location,
+            travelclass,
+            traveltype,
+            departure,
+            arrival,
+            from_time,
+            to_time,
+            travel_mode,
+            ticket_no,
+            attachment,
+            checkin,
+            checkout,
+            no_night,
+            local_date,
+            food_date,
+            other_date,
+            place,
+            remark,
+            date,
+            claimid,
+            travelid
+        ];
+
+        await pool.query(updateQuery, updateValues);
+
+        // Send success response
+        return res.status(200).json({
+            success: true,
+            message: 'Claim updated successfully'
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
 
@@ -218,7 +354,57 @@ const approvedClaims = async (req, res) => {
     }
 };
 
+const setAllClaimsAmount = async (req, res) => {
+    try {
+        const { id } = req.body;
+
+        // Check if ID is provided
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid claim ID for claim update",
+            });
+        }
+
+        await pool.query(`
+            DO $$
+            DECLARE
+                total_amount numeric;
+            BEGIN
+                -- Calculate the total amount for the specified claimid
+                SELECT COALESCE(SUM(amount), 0)
+                INTO total_amount
+                FROM public.reimbursement1
+                WHERE travelid = ${id};
+
+                -- Insert or update the total amount in the reimbursement1_total table
+                BEGIN
+                    INSERT INTO public.reimbursement1_total (claimid, total_amount)
+                    VALUES (${id}, total_amount);
+                EXCEPTION WHEN unique_violation THEN
+                    UPDATE public.reimbursement1_total
+                    SET total_amount = total_amount
+                    WHERE claimid = ${id};
+                END;
+            END $$;
+        `);
+
+        return res.status(200).json({
+            success: true,
+            message: "Total amount updated successfully",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
 
 
 
-module.exports = { cliamsItemfun, getClaimsdetails, approvedClaims, delterClaim };
+
+
+
+module.exports = { cliamsItemfun, getClaimsdetails, getAllClaims, approvedClaims, delterClaim, updateClaims, setAllClaimsAmount };
