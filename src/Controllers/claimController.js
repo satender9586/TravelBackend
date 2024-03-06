@@ -82,7 +82,6 @@ const cliamsItemfun = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
-
 const getClaimsdetails = async (req, res) => {
     try {
         const { id } = req.params;
@@ -308,9 +307,6 @@ const updateClaims = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
-
-
-
 const approvedClaims = async (req, res) => {
     try {
         const { claimid } = req.params;
@@ -353,7 +349,6 @@ const approvedClaims = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
-
 const setAllClaimsAmount = async (req, res) => {
     try {
         const { id } = req.body;
@@ -364,6 +359,24 @@ const setAllClaimsAmount = async (req, res) => {
                 success: false,
                 message: "Please provide a valid claim ID for claim update",
             });
+        }
+
+        // Check if ID already exists
+        const idExists = await pool.query(`
+         SELECT EXISTS (
+             SELECT 1 
+             FROM public.reimbursement1_total 
+             WHERE claimid = ${id}
+         );
+     `);
+
+        const existsResult = idExists.rows[0].exists;
+
+        if (existsResult) {
+            return res.status(400).json({
+                success: false,
+                message: "Claim is Alredy exists"
+            })
         }
 
         await pool.query(`
@@ -401,6 +414,7 @@ const setAllClaimsAmount = async (req, res) => {
         });
     }
 };
+
 
 
 
