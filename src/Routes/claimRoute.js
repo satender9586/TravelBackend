@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const { cliamsItemfun, getClaimsdetails, getAllClaims, updateClaims, approvedClaims, delterClaim, setAllClaimsAmount } = require("../Controllers/claimController")
+const { getAllReimbursements, checkClaimExists, cliamsItemfun, getClaimsdetails, getAllClaims, updateClaims, approvedClaims, delterClaim, setAllClaimsAmount } = require("../Controllers/claimController")
 
 // POST METHOD || NEW CLAIMS
 router.post('/travalClaims', cliamsItemfun)
@@ -22,5 +22,10 @@ router.delete("/deleteClaims/:id", delterClaim)
 // post METHOD || set ammmount
 router.post("/claimsTotal", setAllClaimsAmount)
 
+// post METHOD || isClaimExist
+router.post("/isclaimexist", checkClaimExists)
+
+// get METHOD || fetchAllclaims
+router.get("/getallrembusement", getAllReimbursements)
 
 module.exports = router

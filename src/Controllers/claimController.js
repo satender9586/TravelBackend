@@ -414,6 +414,59 @@ const setAllClaimsAmount = async (req, res) => {
         });
     }
 };
+const checkClaimExists = async (req, res) => {
+    try {
+        const { id } = req.body;
+
+        // Check if ID is provided
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid claim ID",
+            });
+        }
+
+        // Check if ID already exists
+        const idExists = await pool.query(`
+            SELECT EXISTS (
+                SELECT 1 
+                FROM public.reimbursement1_total 
+                WHERE claimid = ${id}
+            );
+        `);
+
+        const existsResult = idExists.rows[0].exists;
+
+        return res.status(200).json({
+            success: true,
+            exists: existsResult,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+async function getAllReimbursements(req, res) {
+    try {
+        const reimbursements = await pool.query('SELECT * FROM reimbursement1_total ');
+        res.json({
+            success: true,
+            data: reimbursements.rows,
+            message: "Successfully fetched all reimbursements",
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+}
 
 
 
@@ -421,4 +474,5 @@ const setAllClaimsAmount = async (req, res) => {
 
 
 
-module.exports = { cliamsItemfun, getClaimsdetails, getAllClaims, approvedClaims, delterClaim, updateClaims, setAllClaimsAmount };
+
+module.exports = { getAllReimbursements, cliamsItemfun, getClaimsdetails, getAllClaims, approvedClaims, delterClaim, updateClaims, setAllClaimsAmount, checkClaimExists };

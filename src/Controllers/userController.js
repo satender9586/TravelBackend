@@ -210,7 +210,7 @@ const signIn = async (req, res) => {
         }
 
         // If both email and password are valid, create and send a token for authentication
-        const token = await JWT.sign({ id: user.rows[0].id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        const token = await JWT.sign({ id: user.rows[0].employeeid, email: user.rows[0].email }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         return res.status(200).json({
             success: true,
@@ -236,24 +236,23 @@ const tokenVerify = async (req, res) => {
 
         JWT.verify(token, process.env.JWT_SECRET, async (error, decoded) => {
             if (error) {
-                return res.json({ valid: false, message: "Invalid Auth" });
+                return res.json({ success: false, message: "Invalid Auth" });
             }
 
 
-            const userQuery = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+            const userQuery = await pool.query('SELECT * FROM users WHERE employeeid = $1', [decoded.id]);
 
             if (userQuery.rows.length === 0) {
-                // If user not found, return an error
-                return res.json({ valid: false });
+                return res.json({ success: false });
             }
 
             const user = userQuery.rows[0];
 
             return res.json({
-                valid: true,
+                success: true,
                 user: {
-                    username: user.username,
-                    role: user.role,
+                    userInfo: user,
+
                 },
             });
         });
